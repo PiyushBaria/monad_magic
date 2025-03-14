@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "setup": "cp .env.template .env",
+    "setup": "cp env.template .env",
     "lint": "eslint ."
   },
   "repository": {
