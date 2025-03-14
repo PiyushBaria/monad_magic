@@ -48,8 +48,8 @@ npm install
 启动铸造工具:
 
 ```bash
-#设置 .env
-npm run setup
+#设置环境变量
+npm run setup    # 这将从 env.template 创建 .env 文件
 
 #启动
 npm start
