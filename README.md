@@ -30,7 +30,7 @@ npm install
 
 3. 配置钱包:
 
-   在 `.env` 文件中添加你的私钥:
+   在 `.env` 文件中添加你的私钥，支持配置多个钱包:
 
    ```
    NETWORK=monad-testnet
@@ -38,10 +38,16 @@ npm install
    DEFAULT_GAS_LIMIT_MIN=180000
    DEFAULT_GAS_LIMIT_MAX=280000
 
-   PRIVATEKEY=0x你的私钥
+   # 可以配置多个钱包
+   PRIVATEKEY_1=0x你的私钥1
+   PRIVATEKEY_2=0x你的私钥2
+   PRIVATEKEY_3=0x你的私钥3
    ```
 
-   ⚠️ **重要提示**: 切勿分享你的 `.env` 文件或泄露你的私钥。
+   ⚠️ **重要提示**: 
+   - 切勿分享你的 `.env` 文件或泄露你的私钥
+   - 多个钱包的私钥格式为 PRIVATEKEY_1, PRIVATEKEY_2 等
+   - 确保每个私钥都以 0x 开头
 
 ## 使用方法
 
