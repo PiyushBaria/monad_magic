@@ -9,11 +9,10 @@ import { ABI } from './config/ABI.js';
 
 const displayBanner = () => {
   console.log(chalk.cyan(`
-┌─────────────────────────────────┐
-│         MONAD NFT 铸造工具       │
-│       在 Monad 链上铸造 NFT       │
-│                                 │
-└─────────────────────────────────┘
+─────────────────────────────────
+         MONAD NFT 铸造工具       
+       在 Monad 链上铸造 NFT                                    
+─────────────────────────────────
 `));
 };
 
@@ -177,42 +176,50 @@ const startMonitoring = async (
 
 const getGasPrice = async (provider) => {
   try {
-    const feeData = await provider.getFeeData();
-    const baseFee = feeData.lastBaseFeePerGas || ethers.utils.parseUnits('50', 'gwei');
-    const suggestedMaxFee = baseFee.mul(2);
-    
-    log.info('当前网络 Gas 信息:');
-    log.info(`- Base Fee: ${ethers.utils.formatUnits(baseFee, 'gwei')} gwei`);
-    log.info(`- 建议最大费用: ${ethers.utils.formatUnits(suggestedMaxFee, 'gwei')} gwei`);
-    
-    return {
-      baseFee,
-      suggestedMaxFee
-    };
+    // 尝试最多3次获取最新的gas价格
+    for (let i = 0; i < 3; i++) {
+      try {
+        const feeData = await provider.getFeeData();
+        if (!feeData || !feeData.lastBaseFeePerGas) {
+          throw new Error('获取 Gas 价格数据不完整');
+        }
+
+        const baseFee = feeData.lastBaseFeePerGas;
+        const currentGasPrice = await provider.getGasPrice();
+        
+        // 计算建议的最大费用：取当前 gas price 和 base fee * 2 的较大值
+        const baseFeeMul2 = baseFee.mul(2);
+        const suggestedMaxFee = currentGasPrice.gt(baseFeeMul2) ? currentGasPrice : baseFeeMul2;
+        
+        log.info('当前网络 Gas 信息:');
+        log.info(`- Base Fee: ${ethers.utils.formatUnits(baseFee, 'gwei')} gwei`);
+        log.info(`- 当前 Gas Price: ${ethers.utils.formatUnits(currentGasPrice, 'gwei')} gwei`);
+        log.info(`- 建议最大费用: ${ethers.utils.formatUnits(suggestedMaxFee, 'gwei')} gwei`);
+        
+        return {
+          baseFee,
+          currentGasPrice,
+          suggestedMaxFee
+        };
+      } catch (retryError) {
+        if (i === 2) throw retryError; // 最后一次尝试失败则抛出错误
+        log.warning(`第 ${i + 1} 次获取 Gas 价格失败，正在重试...`);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒后重试
+      }
+    }
   } catch (error) {
     log.error('获取 Gas 价格失败:', error.message);
+    // 如果实在无法获取，使用保守的默认值
+    const defaultBaseFee = ethers.utils.parseUnits('50', 'gwei');
+    const defaultGasPrice = ethers.utils.parseUnits('100', 'gwei');
+    log.warning('使用保守的默认 Gas 价格:');
+    log.warning(`- 默认 Base Fee: 50 gwei`);
+    log.warning(`- 默认 Gas Price: 100 gwei`);
     return {
-      baseFee: ethers.utils.parseUnits('50', 'gwei'),
-      suggestedMaxFee: ethers.utils.parseUnits('100', 'gwei')
+      baseFee: defaultBaseFee,
+      currentGasPrice: defaultGasPrice,
+      suggestedMaxFee: defaultGasPrice
     };
-  }
-};
-
-const PRIORITY_FEE_PRESETS = {
-  normal: {
-    name: '一般',
-    value: '6',
-    description: '适用于网络空闲时期，交易通常可以正常打包'
-  },
-  fast: {
-    name: '加速',
-    value: '20',
-    description: '适用于一般情况，交易通常在短时间内被打包'
-  },
-  rapid: {
-    name: '极速',
-    value: '50',
-    description: '适用于网络拥堵时期，交易优先级最高'
   }
 };
 
@@ -229,14 +236,14 @@ const main = async () => {
     const provider = createProvider(ENV.NETWORK);
     
     // 获取实时 gas 价格
-    const { baseFee, suggestedMaxFee } = await getGasPrice(provider);
+    const { baseFee, currentGasPrice, suggestedMaxFee } = await getGasPrice(provider);
     
     const answers = await inquirer.prompt([
       {
         type: 'list',
         name: 'mintMode',
         message: '铸造模式:',
-        choices: ['即时铸造', '定时铸造', '监控模式']
+        choices: ['即时铸造', '监控模式', '定时铸造']
       },
       {
         type: 'input',
@@ -289,7 +296,7 @@ const main = async () => {
       {
         type: 'input',
         name: 'maxGasPrice',
-        message: `最大可接受的 Gas Price (gwei) (当前建议 ${ethers.utils.formatUnits(suggestedMaxFee, 'gwei')}):`,
+        message: `最大可接受的 Gas Price (gwei) (当前网络建议 ${ethers.utils.formatUnits(suggestedMaxFee, 'gwei')}, 实时 Gas ${ethers.utils.formatUnits(currentGasPrice, 'gwei')}):`,
         default: ethers.utils.formatUnits(suggestedMaxFee, 'gwei'),
         validate: (input) => {
           const num = parseFloat(input);
@@ -300,30 +307,15 @@ const main = async () => {
         }
       },
       {
-        type: 'list',
-        name: 'priorityFeePreset',
-        message: '选择优先费用等级:',
-        choices: Object.entries(PRIORITY_FEE_PRESETS).map(([key, preset]) => ({
-          name: `${preset.name} (${preset.value} gwei) - ${preset.description}`,
-          value: key
-        })),
-        default: 'fast'
-      },
-      {
-        type: 'confirm',
-        name: 'customPriorityFee',
-        message: '是否自定义优先费用?',
-        default: false
-      },
-      {
         type: 'input',
-        name: 'maxPriorityFee',
-        message: '请输入自定义优先费用 (gwei):',
-        when: (answers) => answers.customPriorityFee,
+        name: 'priorityFeePercent',
+        message: '优先费用百分比 (直接输入数字，如 30 表示 30%, 回车默认 10%):',
+        default: '10',
         validate: (input) => {
+          if (input === '') return true;
           const num = parseFloat(input);
-          if (isNaN(num) || num < 1) {
-            return '优先费用不能小于 1 gwei';
+          if (isNaN(num) || num <= 0 || num > 100) {
+            return '请输入 1-100 之间的数字';
           }
           return true;
         }
@@ -347,19 +339,18 @@ const main = async () => {
       const firstWallet = createWallet(wallets[0].privateKey, provider);
       const contract = new ethers.Contract(contractAddress, ABI, firstWallet);
       
-      // 设置优先费用
-      const priorityFeeGwei = answers.customPriorityFee 
-        ? answers.maxPriorityFee 
-        : PRIORITY_FEE_PRESETS[answers.priorityFeePreset].value;
-      
-      const maxFeePerGas = ethers.utils.parseUnits(answers.maxGasPrice, 'gwei');
+      // 计算优先费用
+      const priorityFeePercent = parseFloat(answers.priorityFeePercent || '10');
+      const priorityFeeGwei = ethers.utils.formatUnits(baseFee.mul(priorityFeePercent).div(100), 'gwei');
       const maxPriorityFeePerGas = ethers.utils.parseUnits(priorityFeeGwei, 'gwei');
+      const maxFeePerGas = ethers.utils.parseUnits(answers.maxGasPrice, 'gwei');
 
       log.info(`Gas 设置:`);
       log.info(`- Gas 限制: ${gasLimit}`);
       log.info(`- 当前 Base Fee: ${ethers.utils.formatUnits(baseFee, 'gwei')} gwei`);
+      log.info(`- 当前 Gas Price: ${ethers.utils.formatUnits(currentGasPrice, 'gwei')} gwei`);
       log.info(`- 最大费用: ${answers.maxGasPrice} gwei`);
-      log.info(`- 优先费用: ${priorityFeeGwei} gwei (${answers.customPriorityFee ? '自定义' : PRIORITY_FEE_PRESETS[answers.priorityFeePreset].name})`);
+      log.info(`- 优先费用: ${priorityFeeGwei} gwei (Base Fee 的 ${priorityFeePercent}%)`);
       log.info(`- 预计最大总 Gas 费用: ${ethers.utils.formatEther(maxFeePerGas.mul(gasLimit))} MON`);
 
       if (answers.mintMode === '监控模式') {
@@ -482,7 +473,8 @@ const main = async () => {
             );
 
             if (result.error) {
-              log.warning('fourParams 方法失败，尝试 twoParams 方法...');
+              log.warning('fourParams 方法失败，错误信息:', result.error);
+              log.info('尝试使用 twoParams 方法铸造...');
               result = await executeMint(
                 contractAddress,
                 wallet,
@@ -493,6 +485,28 @@ const main = async () => {
                 getTransactionExplorerUrl(null, ENV.NETWORK),
                 maxPriorityFeePerGas
               );
+              
+              if (result.error) {
+                log.error(`twoParams 方法也失败了，错误信息:`, result.error);
+              } else {
+                log.success(`使用 twoParams 方式铸造成功！`);
+                if (result.txHash) {
+                  log.info(`交易哈希: ${result.txHash}`);
+                  log.info(`浏览器链接: ${getTransactionExplorerUrl(result.txHash, ENV.NETWORK)}`);
+                }
+                if (result.gasUsed) {
+                  log.info(`实际使用的 Gas: ${result.gasUsed}`);
+                }
+              }
+            } else {
+              log.success(`使用 fourParams 方式铸造成功！`);
+              if (result.txHash) {
+                log.info(`交易哈希: ${result.txHash}`);
+                log.info(`浏览器链接: ${getTransactionExplorerUrl(result.txHash, ENV.NETWORK)}`);
+              }
+              if (result.gasUsed) {
+                log.info(`实际使用的 Gas: ${result.gasUsed}`);
+              }
             }
           } else {
             // 使用用户指定的方法
@@ -506,14 +520,42 @@ const main = async () => {
               getTransactionExplorerUrl(null, ENV.NETWORK),
               maxPriorityFeePerGas
             );
+
+            if (result.error) {
+              log.error(`${answers.mintMethod} 方法铸造失败，错误信息:`, result.error);
+            } else {
+              log.success(`使用 ${answers.mintMethod} 方式铸造成功！`);
+              if (result.txHash) {
+                log.info(`交易哈希: ${result.txHash}`);
+                log.info(`浏览器链接: ${getTransactionExplorerUrl(result.txHash, ENV.NETWORK)}`);
+              }
+              if (result.gasUsed) {
+                log.info(`实际使用的 Gas: ${result.gasUsed}`);
+              }
+            }
           }
 
           if (result.error) {
-            log.error(`钱包 ${i + 1} 第 ${j + 1} 个铸造失败: ${result.error}`);
+            log.error(`钱包 ${i + 1} 第 ${j + 1} 个铸造失败`);
+            log.error(`- 错误类型: ${result.error.code || '未知'}`);
+            log.error(`- 错误信息: ${result.error.message || result.error}`);
+            if (result.error.transaction) {
+              log.error(`- 交易数据: ${JSON.stringify(result.error.transaction, null, 2)}`);
+            }
             // 如果是自动模式且两种方法都失败，或者是指定方法失败，跳过这个钱包
             break;
           } else {
             log.success(`钱包 ${i + 1} 第 ${j + 1} 个铸造成功！`);
+            log.info(`- 交易状态: ${result.status || '已确认'}`);
+            if (result.blockNumber) {
+              log.info(`- 区块号: ${result.blockNumber}`);
+            }
+            if (result.gasUsed) {
+              log.info(`- Gas 使用: ${result.gasUsed}`);
+            }
+            if (result.effectiveGasPrice) {
+              log.info(`- 实际 Gas 价格: ${ethers.utils.formatUnits(result.effectiveGasPrice, 'gwei')} gwei`);
+            }
           }
           
           // 在每次铸造之间等待一小段时间
