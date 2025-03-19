@@ -5,19 +5,19 @@ A modular command-line tool for minting NFTs on the Monad blockchain. Simplifies
 ## Features
 
 -   **Multiple Minting Modes**:
-    -      Instant Minting: Executes minting operations immediately.
-    -      Scheduled Minting: Automatically starts minting at a specified time.
-    -      Monitoring Mode: Continuously monitors contract status, automatically detects and executes minting.
+          Instant Minting: Executes minting operations immediately.
+          Scheduled Minting: Automatically starts minting at a specified time.
+         Monitoring Mode: Continuously monitors contract status, automatically detects and executes minting.
 -   **Smart Contract Integration**:
-    -      Automatically detects the correct minting function and parameters.
-    -      Supports both fourParams and twoParams minting methods.
-    -      Automatic retry mechanism to improve minting success rate.
+          Automatically detects the correct minting function and parameters.
+          Supports both fourParams and twoParams minting methods.
+          Automatic retry mechanism to improve minting success rate.
 -   **Automatic Price Detection**: Automatically retrieves the minting price from the contract.
 -   **Multi-Wallet Support**: Supports configuring multiple wallets for simultaneous minting.
 -   **Dynamic Gas Optimization**:
-    -      Real-time retrieval of network Gas prices.
-    -      Intelligent adjustment of Gas parameters to improve minting success rate.
-    -      Three levels of priority fee presets: Normal, Fast, and Fastest.
+         Real-time retrieval of network Gas prices.
+         Intelligent adjustment of Gas parameters to improve minting success rate.
+          Three levels of priority fee presets: Normal, Fast, and Fastest.
 -   **Series Details**: Displays series name and supply information.
 -   **Magic Eden Link Support**: Directly paste Magic Eden minting links to extract contract addresses.
 
@@ -54,9 +54,9 @@ npm install
 
     ⚠️ **Important Notes**:
 
-    -      Never share your `.env` file or reveal your private keys.
-    -      The format for multiple wallet private keys is PRIVATEKEY_1, PRIVATEKEY_2, etc.
-    -   Ensure each private key starts with 0x.
+          Never share your `.env` file or reveal your private keys.
+          The format for multiple wallet private keys is PRIVATEKEY_1, PRIVATEKEY_2, etc.
+      Ensure each private key starts with 0x.
 
 ## Usage
 
@@ -73,53 +73,53 @@ npm start
 ### Minting Mode Selection
 
 1.  **Instant Minting Mode**
-    -      Executes minting operations immediately.
-    -      Suitable for minting events that have already started.
+          Executes minting operations immediately.
+          Suitable for minting events that have already started.
 
 2.  **Scheduled Minting Mode**
-    -      Sets a specific time to automatically start minting.
-    -      The program will wait until the specified time.
-    -      Suitable for minting events with known start times.
+          Sets a specific time to automatically start minting.
+          The program will wait until the specified time.
+          Suitable for minting events with known start times.
 
 3.  **Monitoring Mode**
-    -      Continuously monitors contract status.
-    -      Automatically detects when minting has started.
-    -      Executes immediately when minting begins.
-    -      Suitable for minting events with uncertain start times.
+          Continuously monitors contract status.
+          Automatically detects when minting has started.
+          Executes immediately when minting begins.
+          Suitable for minting events with uncertain start times.
     -   Monitoring interval can be set (default 3 seconds).
 
 ### Gas Parameter Explanation
 
 1.  **Gas Limit**
-    -      Recommended setting: 110000.
-    -      Cannot be lower than 100000.
+          Recommended setting: 110000.
+          Cannot be lower than 100000.
 
 2.  **Gas Price**
-    -      Dynamically retrieves the current network Base Fee.
-    -      Recommended setting: 2 times the current Base Fee.
-    -      The program will display real-time recommended values.
+          Dynamically retrieves the current network Base Fee.
+          Recommended setting: 2 times the current Base Fee.
+          The program will display real-time recommended values.
 
 3.  **Priority Fee**
-    -      Calculated as a percentage of the current Base Fee.
-    -      Default: 10% of the Base Fee.
-    -      Customizable percentage (1-100%).
-    -      Recommended settings:
+          Calculated as a percentage of the current Base Fee.
+          Default: 10% of the Base Fee.
+          Customizable percentage (1-100%).
+          Recommended settings:
         -      Idle network: 10-20%.
         -      Busy network: 20-40%.
         -      Congested network: Above 40%.
-    -      Higher percentages increase transaction packing priority.
+          Higher percentages increase transaction packing priority.
 
 ### Minting Method Selection
 
 1.  **Automatic Mode (Recommended)**
-    -      First attempts the fourParams method.
-    -      Automatically switches to the twoParams method if the first attempt fails.
-    -      Avoids gas wastage.
+          First attempts the fourParams method.
+          Automatically switches to the twoParams method if the first attempt fails.
+          Avoids gas wastage.
 
 2.  **Specified Mode**
-    -      fourParams: Directly uses the fourParams method.
-    -      twoParams: Directly uses the twoParams method.
-    -      Suitable for cases where the correct minting method is known.
+          fourParams: Directly uses the fourParams method.
+          twoParams: Directly uses the twoParams method.
+          Suitable for cases where the correct minting method is known.
 
 ### Usage Example
 
@@ -147,10 +147,10 @@ npm start
 
 ## Error Handling
 
--      If minting fails, the program automatically tries different minting methods.
--      Displays detailed error messages and status.
--      Automatic retry mechanism to improve success rate.
--      Intelligent detection of contract status and conditions.
+      If minting fails, the program automatically tries different minting methods.
+      Displays detailed error messages and status.
+      Automatic retry mechanism to improve success rate.
+      Intelligent detection of contract status and conditions.
 
 ## Project Structure
 
