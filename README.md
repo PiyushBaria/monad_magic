@@ -26,8 +26,8 @@ A modular command-line tool for minting NFTs on the Monad blockchain. Simplifies
 1.  Clone the repository:
 
 ```bash
-git clone https://github.com/0xbaiwan/monad_magiceden_nft.git
-cd monad_magiceden_nft
+git clone https://github.com/PiyushBaria/monad_magic
+cd monad_magic
 ```
 
 2.  Install dependencies:
